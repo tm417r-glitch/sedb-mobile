@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0c1320">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SE DB">
+  <meta name="description" content="SEデータベースのオフライン検索・閲覧アプリ。端末内にデータを保存します。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-src blob:; base-uri 'self'; form-action 'none'">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>SE Database Mobile</title>
+  <script src="./vendor/jszip.min.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="mark" aria-hidden="true">SE</div>
+      <div class="brand"><strong>SE DATABASE</strong><small>Mobile <span class="ver">v0.1</span></small></div>
+      <button class="icon-btn" id="settingsButton" type="button" aria-label="データ管理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+    </header>
+    <main>
+      <section class="intro">
+        <div class="eyebrow"><span class="status-dot"></span><span id="dataMode">読み込み中</span></div>
+        <h1>技術情報を、<br><span>いつでも手元に。</span></h1>
+        <p class="lede">ローカル保存・オフライン検索・添付ファイル閲覧</p>
+        <div class="stats"><div><strong id="recordCount">—</strong><span>登録レコード</span></div><div><strong id="kindCount">—</strong><span>種別</span></div><div><strong id="attachmentCount">—</strong><span>添付ファイル</span></div></div>
+      </section>
+      <section class="find" aria-labelledby="searchHeading">
+        <div class="section-heading"><h2 id="searchHeading">データを検索</h2><span id="resultTotal">—</span></div>
+        <label class="searchbar" for="searchInput">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m16 16 5 5"/></svg>
+          <input type="search" id="searchInput" placeholder="キーワードを入力（スペースでAND）" enterkeyhint="search" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="controls"><select id="kindFilter" aria-label="種別で絞り込み"><option value="">すべての種別</option></select><button type="button" id="clearSearch" class="secondary-btn">クリア</button></div>
+        <div class="history" id="historyWrap" hidden><span>検索履歴</span><div class="chips" id="historyChips"></div></div>
+      </section>
+      <section aria-label="検索結果"><div id="resultList" class="result-list" aria-live="polite"></div><button id="moreButton" class="more-button" type="button" hidden>さらに表示</button></section>
+      <div class="privacy-note">端末内のデータを検索します。検索時に外部サーバーへ送信しません。</div>
+    </main>
+    <nav class="bottom-nav"><button class="navitem active" id="homeTab" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><span>検索</span></button><button class="navitem" id="dataTab"><svg viewBox="0 0 24 24"><path d="M4 8c0-3 16-3 16 0v9c0 3-16 3-16 0V8Z"/><path d="M4 8c0 3 16 3 16 0M4 12c0 3 16 3 16 0"/></svg><span>データ管理</span></button></nav>
+  </div>
+  <div class="overlay" id="overlay" hidden></div>
+  <section class="sheet" id="detailSheet" role="dialog" aria-modal="true" aria-label="詳細情報" hidden><div class="sheet-head"><button class="back-btn" type="button" id="closeDetail">← 戻る</button><div class="sheet-title">レコード詳細</div></div><div class="sheet-content" id="detailContent"></div></section>
+  <section class="sheet" id="dataSheet" role="dialog" aria-modal="true" aria-label="データ管理" hidden>
+    <div class="sheet-head"><button class="back-btn" type="button" id="closeData">← 戻る</button><div class="sheet-title">データ管理</div></div>
+    <div class="sheet-content">
+      <div class="panel"><div class="panel-ico">⇧</div><h2>ZIPを取り込む</h2><p>Windows版から作成したSEDB_Mobile.zipを読み込み、端末内データを置き換えます。</p><label class="file-cta" for="importFile">ZIPファイルを選択 <input type="file" id="importFile" accept=".zip,application/zip,application/x-zip-compressed"></label><p class="hint" id="importStatus" role="status">データはサーバーにアップロードしません。</p></div>
+      <div class="panel"><h2>現在のデータ</h2><dl class="data-info"><div><dt>モード</dt><dd id="infoMode">—</dd></div><div><dt>件数</dt><dd id="infoRecords">—</dd></div><div><dt>更新日時</dt><dd id="infoUpdated">—</dd></div></dl><button type="button" class="secondary-btn full" id="loadDemo">デモ表示に切り替える</button></div>
+      <div class="panel warning"><h2>セキュリティ上の注意</h2><p>取り込んだデータはこのブラウザの端末内領域に保存されます。暗号化・認証機能はありません。実顧客データは社内規程を確認し、必要な端末保護を行ってください。</p><p>ストレージ削除・端末紛失に備え、原本はWindows版に残してください。</p><button type="button" class="danger-btn full" id="deleteData">端末内に保存したデータを削除</button></div>
+    </div>
+  </section>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
